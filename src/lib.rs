@@ -7,7 +7,7 @@ static ALLOC: WeeAlloc = WeeAlloc::INIT;
 
 #[wasm_bindgen(module = "/www/utils/random.js")]
 extern "C" {
-  fn rand(max: usize) -> usize;
+    fn rand(max: usize) -> usize;
 }
 
 #[wasm_bindgen]
@@ -18,7 +18,15 @@ pub enum Direction {
     Left,
 }
 
-#[derive(Clone, Copy)]
+#[wasm_bindgen]
+#[derive(Clone)]
+pub enum GameState {
+    Won,
+    Lost,
+    Playing,
+}
+
+#[derive(Clone, Copy, PartialEq)]
 pub struct SnakeCell(usize);
 
 struct Snake {
@@ -48,28 +56,72 @@ pub struct World {
     snake: Snake,
     next_cell: Option<SnakeCell>,
     reward_cell: usize,
+    initial_length: usize,
+    game_state: Option<GameState>,
 }
 
 #[wasm_bindgen]
 impl World {
     pub fn new(width: usize, spawn_idx: usize) -> World {
         let size = width * width;
-        let reward_cell  = rand(size);
+        let initial_length = 3;
+        let snake = Snake::new(spawn_idx, initial_length);
+        let reward_cell = World::gen_reward_cell(size, &snake.body);
 
         World {
             width,
             size,
-            snake: Snake::new(spawn_idx, 3),
+            snake,
             next_cell: None,
             reward_cell,
+            initial_length,
+            game_state: None,
         }
+    }
+
+    fn gen_reward_cell(max: usize, snake_body: &Vec<SnakeCell>) -> usize {
+        let mut reward_cell;
+
+        loop {
+            reward_cell = rand(max);
+            if !snake_body.contains(&SnakeCell(reward_cell)) {
+                break;
+            }
+        }
+        reward_cell
+    }
+
+    pub fn size(&self) -> usize {
+        self.size
+    }
+
+    pub fn score(&self) -> usize {
+        self.snake_length() - self.initial_length
     }
 
     pub fn reward_cell(&self) -> usize {
         self.reward_cell
     }
 
+    pub fn game_state(&self) -> GameState {
+        match &self.game_state {
+            Some(gs) => gs.clone(),
+            None => GameState::Playing,
+        }
+    }
+
     pub fn step(&mut self) {
+        match self.game_state {
+            Some(GameState::Playing) => self.play_step(),
+            Some(_) => {}
+            None => {
+                self.game_state = Some(GameState::Playing);
+                self.play_step();
+            }
+        }
+    }
+
+    fn play_step(&mut self) {
         let tmp = self.snake.body.clone();
         let len = self.snake_length();
 
@@ -83,6 +135,18 @@ impl World {
 
         for i in 1..len {
             self.snake.body[i] = SnakeCell(tmp[i - 1].0)
+        }
+
+        if self.reward_cell == self.snake_head() {
+            if self.snake.body.len() <= self.size {
+                self.reward_cell = World::gen_reward_cell(self.size, &self.snake.body);
+            } else {
+                // move reward outside of playable area
+                self.game_state = Some(GameState::Won);
+                self.reward_cell = self.size + 1;
+            }
+
+            self.snake.body.push(SnakeCell(self.snake.body[1].0));
         }
     }
 

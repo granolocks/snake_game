@@ -8,17 +8,19 @@
 
 // init();
 
-import init, { World, Direction } from "snake_game";
+import init, { GameState, World, Direction } from "snake_game";
 
 import { rand } from "./utils/random.js";
 
 init().then((wasm) => {
-  const CELL_SIZE = 30;
-  const WORLD_WIDTH = 16;
+  const CELL_SIZE = 60;
+  const WORLD_WIDTH = 3;
+  const FPS = 2;
   const spawnIdx = rand(WORLD_WIDTH * WORLD_WIDTH);
   const world = World.new(WORLD_WIDTH, spawnIdx);
   const worldWidth = world.width();
   const canvas = <HTMLCanvasElement>document.getElementById("snake-canvas");
+  const scoreBoard = <HTMLSpanElement>document.getElementById("score-board");
   const ctx = <CanvasRenderingContext2D>canvas.getContext("2d");
   const canvasWidth = worldWidth * CELL_SIZE;
   canvas.height = canvasWidth;
@@ -83,6 +85,10 @@ init().then((wasm) => {
     ctx.stroke();
   }
 
+  function updateScore() {
+    scoreBoard.innerText = `${world.score()}`;
+  }
+
   function paint() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawWorld();
@@ -91,12 +97,18 @@ init().then((wasm) => {
   }
 
   function update() {
-    const fps = 10;
     setTimeout(() => {
-      world.step();
-      paint();
+      if (world.game_state() == GameState.Playing) {
+        world.step();
+        paint();
+        updateScore();
+      } else if (world.game_state() == GameState.Won) {
+          alert("victory eternal!");
+      } else if (world.game_state() == GameState.Lost) {
+          alert("crushing defeat!");
+      }
       requestAnimationFrame(update);
-    }, 1000 / fps);
+    }, 1000 / FPS);
   }
 
   paint();
