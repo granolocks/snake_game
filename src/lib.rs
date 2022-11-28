@@ -19,7 +19,7 @@ pub enum Direction {
 }
 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum GameState {
     Won,
     Lost,
@@ -55,7 +55,7 @@ pub struct World {
     size: usize,
     snake: Snake,
     next_cell: Option<SnakeCell>,
-    reward_cell: usize,
+    reward_cell: Option<usize>,
     initial_length: usize,
     game_state: Option<GameState>,
 }
@@ -79,7 +79,7 @@ impl World {
         }
     }
 
-    fn gen_reward_cell(max: usize, snake_body: &Vec<SnakeCell>) -> usize {
+    fn gen_reward_cell(max: usize, snake_body: &Vec<SnakeCell>) -> Option<usize> {
         let mut reward_cell;
 
         loop {
@@ -88,7 +88,7 @@ impl World {
                 break;
             }
         }
-        reward_cell
+        Some(reward_cell)
     }
 
     pub fn size(&self) -> usize {
@@ -99,14 +99,20 @@ impl World {
         self.snake_length() - self.initial_length
     }
 
-    pub fn reward_cell(&self) -> usize {
+    pub fn reward_cell(&self) -> Option<usize> {
         self.reward_cell
     }
 
-    pub fn game_state(&self) -> GameState {
-        match &self.game_state {
-            Some(gs) => gs.clone(),
-            None => GameState::Playing,
+    pub fn game_state(&self) -> Option<GameState> {
+        self.game_state
+    }
+
+    pub fn game_state_text(&self) -> String {
+        match self.game_state {
+            Some(GameState::Playing) => String::from("Playing"),
+            Some(GameState::Won) => String::from("Won"),
+            Some(GameState::Lost) => String::from("Lost"),
+            None => String::from("Waiting..."),
         }
     }
 
@@ -137,13 +143,17 @@ impl World {
             self.snake.body[i] = SnakeCell(tmp[i - 1].0)
         }
 
-        if self.reward_cell == self.snake_head() {
+        if self.snake.body[1..self.snake_length()].contains(&self.snake.body[0]) {
+            self.game_state = Some(GameState::Lost);
+        }
+
+        if self.reward_cell == Some(self.snake_head()) {
             if self.snake.body.len() <= self.size {
                 self.reward_cell = World::gen_reward_cell(self.size, &self.snake.body);
             } else {
                 // move reward outside of playable area
                 self.game_state = Some(GameState::Won);
-                self.reward_cell = self.size + 1;
+                self.reward_cell = None;
             }
 
             self.snake.body.push(SnakeCell(self.snake.body[1].0));
@@ -162,6 +172,10 @@ impl World {
         };
 
         SnakeCell(next_cell_idx)
+    }
+
+    pub fn start_game(&mut self) {
+        self.game_state = Some(GameState::Playing);
     }
 
     pub fn change_snake_direction(&mut self, direction: Direction) {

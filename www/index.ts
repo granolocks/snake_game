@@ -14,17 +14,29 @@ import { rand } from "./utils/random.js";
 
 init().then((wasm) => {
   const CELL_SIZE = 60;
-  const WORLD_WIDTH = 3;
-  const FPS = 2;
+  const WORLD_WIDTH = 4;
+  const FPS = 3;
   const spawnIdx = rand(WORLD_WIDTH * WORLD_WIDTH);
   const world = World.new(WORLD_WIDTH, spawnIdx);
   const worldWidth = world.width();
   const canvas = <HTMLCanvasElement>document.getElementById("snake-canvas");
   const scoreBoard = <HTMLSpanElement>document.getElementById("score-board");
+  const gameControlBtn = <HTMLButtonElement>document.getElementById("game-control-button");
   const ctx = <CanvasRenderingContext2D>canvas.getContext("2d");
   const canvasWidth = worldWidth * CELL_SIZE;
   canvas.height = canvasWidth;
   canvas.width = canvasWidth;
+
+  gameControlBtn.addEventListener("click", () => {
+    if (world.game_state() === undefined) {
+      world.start_game();
+      play();
+
+      gameControlBtn.textContent = "Reset"
+    } else {
+      location.reload();
+    }
+  })
 
   document.addEventListener("keydown", ({ code }) => {
     if (code === "ArrowUp" || code === "KeyW") {
@@ -45,7 +57,10 @@ init().then((wasm) => {
       world.snake_length()
     );
 
-    snakeCells.forEach(drawBodyCell);
+    snakeCells.filter((cellIdx, i) => {
+      // remove duplicates in case of collision with head
+      return snakeCells.indexOf(cellIdx) === i;
+    }).forEach(drawBodyCell);
   }
 
   function drawRewardCell() {
@@ -96,21 +111,24 @@ init().then((wasm) => {
     drawRewardCell();
   }
 
-  function update() {
+  function updateStatus() {
+    const el = document.getElementById("game-status");
+    el.innerText = world.game_state_text();
+  }
+
+  function play() {
     setTimeout(() => {
+      updateScore();
+      updateStatus();
       if (world.game_state() == GameState.Playing) {
         world.step();
         paint();
-        updateScore();
-      } else if (world.game_state() == GameState.Won) {
-          alert("victory eternal!");
-      } else if (world.game_state() == GameState.Lost) {
-          alert("crushing defeat!");
-      }
-      requestAnimationFrame(update);
+        requestAnimationFrame(play);
+      } 
     }, 1000 / FPS);
   }
 
+  updateScore();
+  updateStatus();
   paint();
-  update();
 });

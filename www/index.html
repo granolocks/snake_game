@@ -20,15 +20,35 @@
       }
 
       h1 {
-        font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
-        color:peachpuff;
+        font-family: "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS",
+          sans-serif;
+        color: peachpuff;
         text-shadow: 1px 1px black;
       }
 
       h2 {
-        font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+        font-family: "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS",
+          sans-serif;
         color: lightcoral;
         text-shadow: 1px 1px black;
+      }
+
+      .game-panel h3 {
+        font-family: "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS",
+          sans-serif;
+        color: white;
+        text-shadow: 1px 1px black;
+      }
+
+      .game-panel button {
+        color: white;
+        background-color: aqua;
+        border: 1px solid black;
+        text-shadow: 1px 1px black;
+        font-size: 1.25rem;
+        margin: 0 0 1rem 0;
+        width: 100%;
+        padding: 1rem;
       }
 
       #snake-canvas {
@@ -40,6 +60,11 @@
     <div class="content-wrapper">
       <h1>Snake Game!</h1>
       <h2>Score: <span id="score-board">0</span></h2>
+      <div class="game-panel">
+        <h3>Game Status: <span id="game-status"></span></h3>
+
+        <button id="game-control-button">Play</button>
+      </div>
       <canvas id="snake-canvas"></canvas>
     </div>
     <script src="./bootstrap.js"></script>
